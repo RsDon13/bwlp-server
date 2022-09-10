@@ -25,6 +25,7 @@ import org.openslx.bwlp.sat.maintenance.DeleteOldUsers;
 import org.openslx.bwlp.sat.maintenance.MailFlusher;
 import org.openslx.bwlp.sat.maintenance.SendExpireWarning;
 import org.openslx.bwlp.sat.thrift.BinaryListener;
+import org.openslx.bwlp.sat.thrift.ServerHandler;
 import org.openslx.bwlp.sat.thrift.cache.OperatingSystemList;
 import org.openslx.bwlp.sat.thrift.cache.OrganizationList;
 import org.openslx.bwlp.sat.thrift.cache.VirtualizerList;
@@ -37,6 +38,11 @@ import org.openslx.thrifthelper.ThriftManager;
 import org.openslx.thrifthelper.ThriftManager.ErrorCallback;
 import org.openslx.util.AppUtil;
 import org.openslx.util.QuickTimer;
+
+import com.linecorp.armeria.common.thrift.ThriftSerializationFormats;
+import com.linecorp.armeria.server.Server;
+import com.linecorp.armeria.server.ServerBuilder;
+import com.linecorp.armeria.server.thrift.THttpService;
 
 public class App {
 
@@ -169,6 +175,12 @@ public class App {
 		t = new Thread(new WebServer(9080));
 		t.setDaemon(true);
 		t.start();
+		// Start armeria server
+		ServerBuilder sb = Server.builder();
+		sb.http(9070);
+		sb.service("/", THttpService.of(new ServerHandler(), ThriftSerializationFormats.JSON));
+		Server server = sb.build();
+		server.start();
 
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override

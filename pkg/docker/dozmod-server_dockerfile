@@ -33,7 +33,7 @@ COPY ${DOZMOD_SERVER_FILE} dozmod-server.jar
 COPY ${DOZMOD_CONFIG_FILE} config.properties.tmpl
 
 # expose network ports
-EXPOSE 9080 9090 9091
+EXPOSE 9070 9080 9090 9091
 
 # finalize configuration from environment variables and run the dozmod-server
 CMD dockerize -template config.properties.tmpl:config.properties -wait tcp://${DOZMOD_DATABASE_HOST}:${DOZMOD_DATABASE_PORT} -timeout ${DOZMOD_DATABASE_CONNECTION_WAIT_TIMEOUT} java -jar dozmod-server.jar
