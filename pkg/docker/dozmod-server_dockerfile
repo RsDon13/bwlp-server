@@ -1,0 +1,39 @@
+FROM ubuntu:focal
+
+ARG DOZMOD_SERVER_FILE
+ARG DOZMOD_CONFIG_FILE
+
+ARG DOZMOD_SERVER_PATH=/opt/bwLehrpool
+ARG DOZMOD_VSTORE_PATH=/mnt/bwLehrpool
+ENV DOZMOD_DATABASE_HOST=localhost
+ENV DOZMOD_DATABASE_PORT=3306
+ENV DOZMOD_DATABASE_CONNECTION_WAIT_TIMEOUT=1m
+
+# install required packages
+RUN apt-get update  -y && \
+    apt-get install -y default-jre-headless wget
+
+# make folder for dozmod Java server application and VMs
+RUN mkdir -p ${DOZMOD_SERVER_PATH}
+RUN mkdir -p ${DOZMOD_VSTORE_PATH}
+
+# change working directory
+WORKDIR ${DOZMOD_SERVER_PATH}
+
+# install dockerize
+ENV DOCKERIZE_VERSION=v0.6.1
+RUN wget -q https://github.com/jwilder/dockerize/releases/download/${DOCKERIZE_VERSION}/dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz && \
+    tar -C /usr/local/bin -xzvf dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz && \
+    rm dockerize-linux-amd64-${DOCKERIZE_VERSION}.tar.gz
+
+# copy application into the image
+COPY ${DOZMOD_SERVER_FILE} dozmod-server.jar
+
+# copy configuration template into the image
+COPY ${DOZMOD_CONFIG_FILE} config.properties.tmpl
+
+# expose network ports
+EXPOSE 9080 9090 9091
+
+# finalize configuration from environment variables and run the dozmod-server
+CMD dockerize -template config.properties.tmpl:config.properties -wait tcp://${DOZMOD_DATABASE_HOST}:${DOZMOD_DATABASE_PORT} -timeout ${DOZMOD_DATABASE_CONNECTION_WAIT_TIMEOUT} java -jar dozmod-server.jar

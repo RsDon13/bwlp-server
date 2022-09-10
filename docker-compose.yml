@@ -1,0 +1,91 @@
+version: "3"
+services:
+    dozmod-server:
+        container_name: dozmod-server
+        image: dozmod-server:latest
+        hostname: dozmod-server.${BWLP_NETWORK_NAME}
+        build:
+            context: .
+            dockerfile: pkg/docker/dozmod-server_dockerfile
+            args:
+                DOZMOD_SERVER_FILE: target/dozmod-server-1.0-SNAPSHOT-jar-with-dependencies.jar
+                DOZMOD_CONFIG_FILE: setup/config.properties.tmpl
+                DOZMOD_VSTORE_PATH: ${DOZMOD_SERVER_STORAGE}
+        environment:
+            DOZMOD_SERVER_MASTER_HOST: ${DOZMOD_SERVER_MASTER_HOST}
+            DOZMOD_SERVER_MASTER_PORT: ${DOZMOD_SERVER_MASTER_PORT}
+            DOZMOD_SERVER_MASTER_USE_SSL: ${DOZMOD_SERVER_MASTER_USE_SSL}
+            DOZMOD_SERVER_WEB_BIND_LOCALHOST: ${DOZMOD_SERVER_WEB_BIND_LOCALHOST}
+            DOZMOD_DATABASE_NAME: ${DOZMOD_DATABASE_NAME}
+            DOZMOD_DATABASE_HOST: ${DOZMOD_DATABASE_IPV4}
+            DOZMOD_DATABASE_USER: ${DOZMOD_DATABASE_USER}
+            DOZMOD_DATABASE_PASSWORD: ${DOZMOD_DATABASE_PASSWORD}
+            DOZMOD_DATABASE_LOCATION_TABLE: ${DOZMOD_DATABASE_LOCATION_TABLE}
+            DOZMOD_VSTORE_PATH: ${DOZMOD_SERVER_STORAGE}
+        volumes:
+            - type: volume
+              source: dozmod-server
+              target: ${DOZMOD_SERVER_STORAGE}
+              read_only: false
+        depends_on:
+            - dozmod-database
+        networks:
+            bwlp:
+                ipv4_address: ${DOZMOD_SERVER_IPV4}
+                ipv6_address: ${DOZMOD_SERVER_IPV6}
+    dozmod-database:
+        container_name: dozmod-database
+        image: mariadb:latest
+        restart: on-failure
+        hostname: dozmod-database.${BWLP_NETWORK_NAME}
+        environment:
+            TZ: Europe/Berlin
+            MYSQL_DATABASE: ${DOZMOD_DATABASE_NAME}
+            MYSQL_ROOT_PASSWORD: ${DOZMOD_DATABASE_PASSWORD}
+        volumes:
+            - type: volume
+              source: dozmod-database
+              target: /var/lib/mysql
+              read_only: false
+            - type: bind
+              source: ./${DOZMOD_DATABASE_DATASET_PATH}
+              target: /docker-entrypoint-initdb.d
+              read_only: true
+        networks:
+            bwlp:
+                ipv4_address: ${DOZMOD_DATABASE_IPV4}
+                ipv6_address: ${DOZMOD_DATABASE_IPV6}
+    dozmod-phpmyadmin:
+        container_name: dozmod-phpmyadmin
+        image: phpmyadmin:latest
+        hostname: dozmod-phpmyadmin.${BWLP_NETWORK_NAME}
+        restart: on-failure
+        environment:
+            PMA_HOST: ${DOZMOD_DATABASE_IPV4}
+            PMA_VERBOSE: dozmod-database.${BWLP_NETWORK_NAME}
+            MYSQL_ROOT_PASSWORD: ${DOZMOD_DATABASE_PASSWORD}
+        depends_on:
+            - dozmod-database
+        networks:
+            bwlp:
+                ipv4_address: ${DOZMOD_PHPMYADMIN_IPV4}
+                ipv6_address: ${DOZMOD_PHPMYADMIN_IPV6}
+volumes:
+    dozmod-server:
+        name: dozmod-server
+    dozmod-database:
+        name: dozmod-database
+networks:
+    bwlp:
+        name: ${BWLP_NETWORK_NAME}
+        driver: bridge
+        driver_opts:
+            com.docker.network.bridge.name: br${BWLP_NETWORK_NAME}
+        enable_ipv6: true
+        ipam:
+            driver: default
+            config:
+                - subnet: ${BWLP_NETWORK_IPV4}
+                  gateway: ${BWLP_NETWORK_IPV4_GATEWAY}
+                - subnet: ${BWLP_NETWORK_IPV6}
+                  gateway: ${BWLP_NETWORK_IPV6_GATEWAY}
