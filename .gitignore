@@ -1,0 +1,15 @@
+*.class
+*.jar
+*.exe
+.editorconfig
+.project
+.classpath
+.settings/
+target/
+bin/
+gen-java/
+dependency-reduced-pom.xml
+
+*.uml
+*.iml
+.idea/
